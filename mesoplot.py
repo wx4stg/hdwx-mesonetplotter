@@ -3,18 +3,44 @@
 # Created 16 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import pandas as pd
-from os import path, listdir
+from os import path, listdir, rename, remove
 from matplotlib import pyplot as plt
 from matplotlib import image as mpimage
+import requests
+from datetime import datetime as dt
 
+def fetchData(site):
+    if site == "farm":
+        url = "http://afs102.tamu.edu:8080/?command=DataQuery&uri=Server:Farm%20Mesonet.Table10&format=toa5&mode=most-recent&p1=145&p2="
+    elif site == "gardens":
+        url = "http://afs102.tamu.edu:8080/?command=DataQuery&uri=Server:Gardens%20Meso.Table10&format=toa5&mode=most-recent&p1=145&p2="
+    tenTable = requests.get(url)
+    with open("input/"+site+"newData.csv", "w") as f:
+        f.write(tenTable.text)
+    if path.exists("input/"+site+".csv"):
+        table = pd.read_csv("input/"+site+".csv")
+        table = table.set_index(["datetimes"])
+        newTable = pd.read_csv("input/"+site+"newData.csv", skiprows=1).dropna().iloc[1:].reset_index(drop=True)
+        newTable["datetimes"] = pd.to_datetime(newTable["TIMESTAMP"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
+        newTable = newTable.set_index(["datetimes"])
+        table = pd.concat([table, newTable]).drop_duplicates()
+        remove("input/"+site+"newData.csv")
+        remove("input/"+site+".csv")
+        table.to_csv("input/"+site+".csv")
+    else:
+        newTable = pd.read_csv("input/"+site+"newData.csv", skiprows=1).dropna().iloc[1:].reset_index(drop=True)
+        newTable["datetimes"] = pd.to_datetime(newTable["TIMESTAMP"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
+        newTable.set_index(["datetimes"])
+        newTable.to_csv("input/"+site+".csv")
+        remove("input/"+site+"newData.csv")
 
 if __name__ == "__main__":
+    fetchData("farm")
+    fetchData("gardens")
     inputDir = "input/"
     for file in listdir(inputDir):
-        campTable = pd.read_csv(path.join(inputDir, file), skiprows=1)
-        campTable["pd_datetimes"] = pd.to_datetime(campTable["TIMESTAMP"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
-        campTable = campTable.dropna().reset_index()
-        campTable["datetimes"] = [campTable["pd_datetimes"][i].to_pydatetime() for i in range(0, len(campTable))]
+        campTable = pd.read_csv(path.join(inputDir, file))
+        campTable["datetimes"] = pd.to_datetime(campTable["datetimes"])
         campTable = campTable.set_index(["datetimes"])
         campTable = campTable.sort_index().loc["2021-01-01":]
         campTable["AvgAT"] = campTable["AvgAT"].astype(float)
