@@ -154,7 +154,6 @@ def plotData(fileName):
     campTable = campTable.set_index(["datetimes"])
     campTable = campTable.sort_index().loc["2021-01-01":]
     campTable = campTable.loc[(dt.now() - timedelta(days=1)):]
-    campTable = campTable.dropna(how="any")
     campTable["AvgAT"] = campTable["AvgAT"].astype(float)
     campTable["AvgAT"] = campTable["AvgAT"] * 1.8 + 32
     campTable["rollingAT"] = campTable["AvgAT"].rolling("1D").mean()
@@ -173,11 +172,12 @@ def plotData(fileName):
     windTimes = list()
     u = list()
     v = list()
-    for i in range(0, len(campTable[windSpeedVar]), 2):
-        time = campTable.index[i]
+    campTableWinds = campTable.dropna(how="any")
+    for i in range(0, len(campTableWinds[windSpeedVar]), 2):
+        time = campTableWinds.index[i]
         windTimes.append(time)
-        spd = units.Quantity(campTable[windSpeedVar][i], "m/s")
-        dir = units.Quantity(campTable[windDirVar][i], "degrees")
+        spd = units.Quantity(campTableWinds[windSpeedVar][i], "m/s")
+        dir = units.Quantity(campTableWinds[windDirVar][i], "degrees")
         uwind, vwind = mpcalc.wind_components(spd, dir)
         u.append(uwind.to(units("knots")).magnitude)
         v.append(vwind.to(units("knots")).magnitude)
