@@ -5,6 +5,7 @@
 from math import e
 import pandas as pd
 from os import path, listdir, remove
+from pathlib import Path
 from matplotlib import pyplot as plt
 from matplotlib import image as mplimage
 from matplotlib.gridspec import GridSpec
@@ -14,7 +15,8 @@ from datetime import timedelta
 from metpy import calc as mpcalc
 from metpy.units import units
 import numpy as np
-    
+
+basePath = path.dirname(path.realpath(__file__))
 
 def fetchData(site):
     if site == "Farm":
@@ -22,6 +24,8 @@ def fetchData(site):
     elif site == "Gardens":
         url = "http://afs102.tamu.edu:8080/?command=DataQuery&uri=Server:Gardens%20Meso.Table10&format=toa5&mode=most-recent&p1=145&p2="
     tenTable = requests.get(url)
+    inputDir = path.join(basePath, "input")
+    Path(inputDir).mkdir(parents=True, exist_ok=True)
     with open("input/"+site+"newData.csv", "w") as f:
         f.write(tenTable.text)
     if path.exists("input/"+site+".csv"):
@@ -49,6 +53,7 @@ def plotData(fileName):
     campTable = campTable.set_index(["datetimes"])
     campTable = campTable.sort_index().loc["2021-01-01":]
     campTable = campTable.loc[(dt.now() - timedelta(days=1)):]
+    campTable = campTable.dropna(how="any")
     campTable["AvgAT"] = campTable["AvgAT"].astype(float)
     campTable["AvgAT"] = campTable["AvgAT"] * 1.8 + 32
     campTable["rollingAT"] = campTable["AvgAT"].rolling("1D").mean()
@@ -64,13 +69,28 @@ def plotData(fileName):
     campTable["windChill"] = np.ma.MaskedArray([mpcalc.windchill(campTable["AvgAT"][i] * units.degF, campTable[windSpeedVar][i] * units.meter / units.second).to("degF").magnitude for i in range(0, len(campTable["AvgRH"]))]).filled(np.nan)
     campTable.loc[(campTable["windChill"] >= campTable["AvgAT"], "windChill")] = np.nan
     campTable["AvgDP"] = [mpcalc.dewpoint_from_relative_humidity(campTable["AvgAT"][i] * units.degF, campTable["AvgRH"][i]).to("degF").magnitude for i in range(0, len(campTable["AvgRH"]))]
+    windTimes = list()
+    u = list()
+    v = list()
+    for i in range(0, len(campTable[windSpeedVar]), 2):
+        time = campTable.index[i]
+        windTimes.append(time)
+        print(time)
+        spd = units.Quantity(campTable[windSpeedVar][i], "m/s")
+        dir = units.Quantity(campTable[windDirVar][i], "degrees")
+        uwind, vwind = mpcalc.wind_components(spd, dir)
+        u.append(uwind.to(units("knots")).magnitude)
+        v.append(vwind.to(units("knots")).magnitude)
     if siteName == "Farm":
         elevation = 67.7772216796875 * units.meter
     elif siteName == "Gardens":
         elevation = 95.36789703369141 * units.meter
     campTable["AvgMSLP"] = [mpcalc.altimeter_to_sea_level_pressure((float(campTable["AvgBP"][i]) * units.hectopascal), elevation, (campTable["AvgAT"][i] * units.degF)) for i in range(0, len(campTable["AvgBP"]))]
     fig = plt.figure()
+    px = 1/plt.rcParams["figure.dpi"]
+    fig.set_size_inches(1920*px, 1080*px)
     gs = GridSpec(4, 3, figure=fig)
+    gs.update(hspace = 50*px)
     ax1 = fig.add_subplot(gs[0, :])
     ax1.plot(campTable["AvgAT"], "red", label="Temperature")
     ax1.scatter(campTable.index, campTable["AvgAT"], 1, "red")
@@ -83,23 +103,10 @@ def plotData(fileName):
     ax1.legend(loc=1)
     ax1.set_title("Temperature/Dew Point")
     ax2 = fig.add_subplot(gs[1, :])
-    wspdplot = ax2.plot(campTable[windSpeedVar], "teal", label="Wind Speed")
-    ax2.scatter(campTable.index, campTable[windSpeedVar], 1, "teal")
-    ax3 = ax2.twinx()
-    lastBreak = 0
-    for i in range(1, len(campTable)):
-        previousWindOb = campTable[windDirVar][i-1]
-        windOb = campTable[windDirVar][i]
-        pcntDiff = np.abs(windOb - previousWindOb)
-        if pcntDiff > 180:
-            wdplot = ax3.plot(campTable[windDirVar][lastBreak:i], "fuchsia", label="Wind Direction")
-            lastBreak = i
-        if i == (len(campTable) - 1):
-            wdplot = ax3.plot(campTable[windDirVar][lastBreak:i], "fuchsia", label="Wind Direction")
-    ax3.scatter(campTable.index, campTable[windDirVar], 1, "fuchsia")
-    secondPlotLines = wspdplot+wdplot
-    ax2.legend(secondPlotLines, [line.get_label() for line in secondPlotLines], loc=1)
+    ax2.barbs(windTimes, 0, u, v, pivot="middle", label="Winds")
+    ax2.legend(loc=1)
     ax2.set_title("Winds")
+    ax2.tick_params(left=False, labelleft=False)
     ax4 = fig.add_subplot(gs[2, :])
     ax4.plot(campTable["AvgMSLP"], "blue", label="Mean Sea-Level Pressure")
     ax4.scatter(campTable.index, campTable["AvgMSLP"], 1, "blue")
@@ -118,26 +125,24 @@ def plotData(fileName):
     fig.subplots_adjust(top = 0.95)
     fig.subplots_adjust(right = 0.95)
     fig.subplots_adjust(left = 0.05)
-    px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    fig.suptitle("TAMU Mesonet -- "+siteName+" Site", y=0.99)
-    
+    tax = fig.add_axes([ax6.get_position().x0+(ax6.get_position().width/2)-(ax6.get_position().width/6),0.1,(ax6.get_position().width/3),.05])
+    tax.text(0.5, 0.5, "TAMU Mesonet "+siteName+" Site\n Timeseries: Last 24 Hours", horizontalalignment="center", verticalalignment="center", fontsize=16)
+    plt.setp(tax.spines.values(), visible=False)
+    tax.tick_params(left=False, labelleft=False)
+    tax.tick_params(bottom=False, labelbottom=False)
     
     lax = fig.add_axes([.75,0.01,0.2,0.2])
-    lax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
-    lax.set_aspect(2821/11071)
-    plt.setp(lax.spines.values(), visible=False)
-    lax.tick_params(left=False, labelleft=False)
-    lax.tick_params(bottom=False, labelbottom=False)
-    plt.setp(lax.spines.values(), visible=False)
+    tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
     atmoLogo = mplimage.imread("assets/atmoLogo.png")
     lax.imshow(atmoLogo)
+    lax.axis("off")
     fig.savefig(siteName+".png")
 
 if __name__ == "__main__":
     fetchData("Farm")
     fetchData("Gardens")
-    inputDir = "input/"
+    inputDir = path.join(basePath, "input")
     for file in listdir(inputDir):
         plotData(file)
         
