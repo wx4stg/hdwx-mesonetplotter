@@ -61,16 +61,11 @@ def writeJson(productID, validTime):
     # Create parent directory if it doesn't already exist.
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     # Create a frame array to add to the runDict
-    framesArray = [{
-        "fhour" : 0,
-        "filename" : "0.png",
-        "gisInfo" : ["0,0", "0,0"],
-        "valid" : int(validTime.strftime("%Y%m%d%H%M"))
-    }]
+    framesArray = [{"fhour" : i, "filename" : str(i)+".png", "gisInfo" : ["0,0", "0,0"], "valid" : int(validTime.strftime("%Y%m%d%H%M"))} for i in range(0, 60)]
     # Create a dictionary for the run
     productRunDict = {
         "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
-        "pathExtension" : "",
+        "pathExtension" : "last24hrs",
         "runName" : validTime.strftime("%d %b %Y %HZ"),
         "availableFrameCount" : 1,
         "totalFrameCount" : 1,
@@ -112,7 +107,7 @@ def writeJson(productID, validTime):
     # Black magic for HDWX backwards compatibility
     if path.exists(path.join(path.dirname(basePath), "config.txt")):
         if "backwardsCompatibility=true" in open(path.join(path.dirname(basePath), "config.txt")).read():
-            srcImage = path.join(basePath, "output", "products", "mesonet", siteName, typeOfImg.lower(), "0.png")
+            srcImage = path.join(basePath, "output", "products", "mesonet", siteName, typeOfImg.lower(), "last24hrs", "0.png")
             for i in range(1, 60):
                 copyfile(srcImage, srcImage.replace("0.png", str(i)+".png"))
 
@@ -201,13 +196,13 @@ def plotData(fileName):
     ax1.scatter(campTable.index, campTable["heatIndex"], 1, "olive")
     ax1.plot(campTable["windChill"], "aqua", label="Wind Chill")
     ax1.scatter(campTable.index, campTable["windChill"], 1, "aqua")
-    ax1.legend(loc=1)
+    ax1.legend(loc="upper left")
     ax1.set_title("Temperature/Dew Point")
     ax1.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
     ax1.set_ylabel("°F")
     ax2 = fig.add_subplot(gs[1, :])
     ax2.barbs(windTimes, 0, u, v, pivot="middle", label="Winds")
-    ax2.legend(loc=1)
+    ax2.legend(loc="upper left")
     ax2.set_title("Winds")
     ax2.tick_params(left=False, labelleft=False)
     ax2.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
@@ -216,7 +211,7 @@ def plotData(fileName):
     ax4.scatter(campTable.index, campTable["AvgMSLP"], 1, "blue")
     ax4.set_title("MSLP")
     ax4.set_ylabel("hPa")
-    ax4.legend(loc=1)
+    ax4.legend(loc="upper left")
     ax4.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
     ax5 = fig.add_subplot(gs[3, :])
     srplot = ax5.plot(campTable["AvgSR"], "yellow", label="Solar Radiation")
@@ -228,7 +223,7 @@ def plotData(fileName):
     ax6.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
     ax6.set_ylabel("Volts")
     fourthPlotLines = srplot+battplot
-    ax6.legend(fourthPlotLines, [line.get_label() for line in fourthPlotLines], loc=1)
+    ax6.legend(fourthPlotLines, [line.get_label() for line in fourthPlotLines], loc="upper left")
     ax6.set_title("Solar and Battery")
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(top = 0.95)
@@ -245,7 +240,7 @@ def plotData(fileName):
     atmoLogo = mplimage.imread("assets/atmoLogo.png")
     lax.imshow(atmoLogo)
     lax.axis("off")
-    prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries")
+    prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries", "last24hrs")
     Path(prodDir).mkdir(parents=True, exist_ok=True)
     fig.savefig(path.join(prodDir, "0.png"))
     writeJson((productID+1), campTable.index[-1])
