@@ -9,6 +9,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from matplotlib import image as mplimage
 from matplotlib.gridspec import GridSpec
+from matplotlib import dates as pltdates
 import requests
 from datetime import datetime as dt
 from datetime import timedelta
@@ -154,6 +155,7 @@ def plotData(fileName):
     campTable = campTable.set_index(["datetimes"])
     campTable = campTable.sort_index().loc["2021-01-01":]
     campTable = campTable.loc[(dt.now() - timedelta(days=1)):]
+    campTable = campTable[~campTable.index.duplicated(keep="first")]
     campTable["AvgAT"] = campTable["AvgAT"].astype(float)
     campTable["AvgAT"] = campTable["AvgAT"] * 1.8 + 32
     campTable["rollingAT"] = campTable["AvgAT"].rolling("1D").mean()
@@ -172,12 +174,11 @@ def plotData(fileName):
     windTimes = list()
     u = list()
     v = list()
-    campTableWinds = campTable.dropna(how="any")
-    for i in range(0, len(campTableWinds[windSpeedVar]), 2):
-        time = campTableWinds.index[i]
+    for i in range(0, len(campTable[windSpeedVar]), 2):
+        time = campTable.index[i]
         windTimes.append(time)
-        spd = units.Quantity(campTableWinds[windSpeedVar][i], "m/s")
-        dir = units.Quantity(campTableWinds[windDirVar][i], "degrees")
+        spd = units.Quantity(campTable[windSpeedVar][i], "m/s")
+        dir = units.Quantity(campTable[windDirVar][i], "degrees")
         uwind, vwind = mpcalc.wind_components(spd, dir)
         u.append(uwind.to(units("knots")).magnitude)
         v.append(vwind.to(units("knots")).magnitude)
@@ -202,22 +203,30 @@ def plotData(fileName):
     ax1.scatter(campTable.index, campTable["windChill"], 1, "aqua")
     ax1.legend(loc=1)
     ax1.set_title("Temperature/Dew Point")
+    ax1.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
+    ax1.set_ylabel("°F")
     ax2 = fig.add_subplot(gs[1, :])
     ax2.barbs(windTimes, 0, u, v, pivot="middle", label="Winds")
     ax2.legend(loc=1)
     ax2.set_title("Winds")
     ax2.tick_params(left=False, labelleft=False)
+    ax2.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
     ax4 = fig.add_subplot(gs[2, :])
     ax4.plot(campTable["AvgMSLP"], "blue", label="Mean Sea-Level Pressure")
     ax4.scatter(campTable.index, campTable["AvgMSLP"], 1, "blue")
     ax4.set_title("MSLP")
+    ax4.set_ylabel("hPa")
     ax4.legend(loc=1)
+    ax4.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
     ax5 = fig.add_subplot(gs[3, :])
-    srplot = ax5.plot(campTable["AvgSR"], "green", label="Solar Radiation")
-    ax5.scatter(campTable.index, campTable["AvgSR"], 1, "green")
+    srplot = ax5.plot(campTable["AvgSR"], "yellow", label="Solar Radiation")
+    ax5.scatter(campTable.index, campTable["AvgSR"], 1, "yellow")
+    ax5.set_ylabel("W m^-2")
     ax6 = ax5.twinx()
-    battplot = ax6.plot(campTable["Batt"], "yellow", label="Battery Voltage")
-    ax6.scatter(campTable.index, campTable["Batt"], 1, "yellow")
+    battplot = ax6.plot(campTable["Batt"], "green", label="Battery Voltage")
+    ax6.scatter(campTable.index, campTable["Batt"], 1, "green")
+    ax6.xaxis.set_major_formatter(pltdates.DateFormatter("%m/%d %H:%M"))
+    ax6.set_ylabel("Volts")
     fourthPlotLines = srplot+battplot
     ax6.legend(fourthPlotLines, [line.get_label() for line in fourthPlotLines], loc=1)
     ax6.set_title("Solar and Battery")
@@ -227,7 +236,7 @@ def plotData(fileName):
     fig.subplots_adjust(left = 0.05)
     fig.set_size_inches(1920*px, 1080*px)
     tax = fig.add_axes([ax6.get_position().x0+(ax6.get_position().width/2)-(ax6.get_position().width/6),0.1,(ax6.get_position().width/3),.05])
-    tax.text(0.5, 0.5, "TAMU Mesonet "+siteName+" Site\n Timeseries: Last 24 Hours", horizontalalignment="center", verticalalignment="center", fontsize=16)
+    tax.text(0.5, 0.6, "TAMU Mesonet "+siteName+" Site\n 10-Minute Averages Timeseries: Last 24 Hours\nValid "+campTable.index[0].strftime("%b %d %H:%M")+" through "+campTable.index[-1].strftime("%b %d %H:%M"), horizontalalignment="center", verticalalignment="center", fontsize=16)
     plt.setp(tax.spines.values(), visible=False)
     tax.tick_params(left=False, labelleft=False)
     tax.tick_params(bottom=False, labelbottom=False)
