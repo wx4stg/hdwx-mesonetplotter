@@ -110,6 +110,7 @@ def writeJson(productID, validTime):
             srcImage = path.join(basePath, "output", "products", "mesonet", siteName, typeOfImg.lower(), "last24hrs", "0.png")
             for i in range(1, 60):
                 copyfile(srcImage, srcImage.replace("0.png", str(i)+".png"))
+    [remove(path.join(basePath, "output", "products", "mesonet", siteName, typeOfImg.lower(), "last24hrs", oldGif)) for oldGif in listdir(path.join(basePath, "output", "products", "mesonet", siteName, typeOfImg.lower(), "last24hrs")) if ".gif" in oldGif]
 
 def fetchData(site):
     if site == "Farm":
