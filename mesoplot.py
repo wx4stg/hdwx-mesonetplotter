@@ -43,7 +43,7 @@ def writeJson(productID, validTime):
         "productDescription" : productDesc,
         "productPath" : "products/mesonet/"+siteName+"/"+typeOfImg.lower(),
         "productReloadTime" : 60,
-        "lastReloadTime" : int(publishTime.strftime("%Y%m%d%H%M")),
+        "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
         "isForecast" : False,
         "isGIS" : False,
         "fileExtension" : "png"
@@ -61,7 +61,7 @@ def writeJson(productID, validTime):
     # Create parent directory if it doesn't already exist.
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     # Create a frame array to add to the runDict
-    framesArray = [{"fhour" : i, "filename" : str(i)+".png", "gisInfo" : ["0,0", "0,0"], "valid" : int(validTime.strftime("%Y%m%d%H%M"))} for i in range(0, 60)]
+    framesArray = [{"fhour" : i, "filename" : str(i)+".png", "gisInfo" : ["0,0", "0,0"], "valid" : validTime.strftime("%Y%m%d%H%M")} for i in range(0, 60)]
     # Create a dictionary for the run
     productRunDict = {
         "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
