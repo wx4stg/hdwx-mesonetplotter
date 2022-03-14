@@ -7,11 +7,7 @@ else
     condaEnvName="HDWX"
 fi
 echo "Mesonetting"
-if [ -f ~/mambaforge/envs/$condaEnvName/bin/python3 ]
+if [ -f $condaRootPath/envs/$condaEnvName/bin/python3 ]
 then
-    ~/mambaforge/envs/$condaEnvName/bin/python3 mesoplot.py
-fi
-if [ -f ~/miniconda3/envs/$condaEnvName/bin/python3 ]
-then
-    ~/miniconda3/envs/$condaEnvName/bin/python3 mesoplot.py
+    $condaRootPath/envs/$condaEnvName/bin/python3 mesoplot.py
 fi
