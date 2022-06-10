@@ -119,8 +119,7 @@ def fetchData(site):
     elif site == "Gardens":
         url = "http://afs102.tamu.edu:8080/?command=DataQuery&uri=Server:Gardens%20Meso.Table10&format=toa5&mode=most-recent&p1=145&p2="
     tenTable = requests.get(url)
-    inputDir = path.join(basePath, "input")
-    Path(inputDir).mkdir(parents=True, exist_ok=True)
+    Path(path.join(basePath, "input")).mkdir(parents=True, exist_ok=True)
     with open("input/"+site+"newData.csv", "w") as f:
         f.write(tenTable.text)
     if path.exists("input/"+site+".csv"):
@@ -147,7 +146,7 @@ def plotData(fileName):
         productID = 100
     elif siteName == "Gardens":
         productID = 102
-    campTable = pd.read_csv(path.join(inputDir, fileName))
+    campTable = pd.read_csv(path.join(basePath, "input", fileName))
     campTable["datetimes"] = pd.to_datetime(campTable["datetimes"])
     campTable = campTable.set_index(["datetimes"])
     campTable = campTable.sort_index().loc["2021-01-01":]
@@ -249,9 +248,24 @@ def plotData(fileName):
     writeJson((productID+1), campTable.index[-1])
 
 if __name__ == "__main__":
-    fetchData("Farm")
-    fetchData("Gardens")
-    inputDir = path.join(basePath, "input")
-    for file in listdir(inputDir):
-        plotData(file)
-        
+    shouldFarm = True
+    shouldGarden = True
+    now = dt.utcnow()
+    farmLastRunPath = path.join("output", "metadata", "products", "101", now.strftime("%Y%m%d%H00.json"))
+    if path.exists(farmLastRunPath):
+        with open(farmLastRunPath, "r") as jsonRead:
+            lastRunDict = json.load(jsonRead)
+        if now - timedelta(minutes=10) < dt.strptime(lastRunDict["productFrames"][0]["valid"], "%Y%m%d%H%M"):
+            shouldFarm = False
+    gardensLastRunPath = path.join("output", "metadata", "products", "103", now.strftime("%Y%m%d%H00.json"))
+    if path.exists(gardensLastRunPath):
+        with open(gardensLastRunPath, "r") as jsonRead:
+            lastRunDict = json.load(jsonRead)
+        if now - timedelta(minutes=10) < dt.strptime(lastRunDict["productFrames"][0]["valid"], "%Y%m%d%H%M"):
+            shouldGarden = False
+    if shouldFarm:
+        fetchData("Farm")
+        plotData("Farm.csv")
+    if shouldGarden:
+        fetchData("Gardens")
+        plotData("Gardens.csv")
