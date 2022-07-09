@@ -62,7 +62,13 @@ def writeJson(productID, validTime):
     # Create parent directory if it doesn't already exist.
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     # Create a frame array to add to the runDict
-    framesArray = [{"fhour" : i, "filename" : str(i)+".png", "gisInfo" : ["0,0", "0,0"], "valid" : validTime.strftime("%Y%m%d%H%M")} for i in range(0, 60)]
+    if path.exists(path.join(path.dirname(basePath), "config.txt")):
+        if "backwardsCompatibility=true" in open(path.join(path.dirname(basePath), "config.txt")).read():
+            framesArray = [{"fhour" : i, "filename" : str(i)+".png", "gisInfo" : ["0,0", "0,0"], "valid" : validTime.strftime("%Y%m%d%H%M")} for i in range(0, 60)]
+        else:
+            framesArray = [{"fhour" : 0, "filename" : "0.png", "gisInfo" : ["0,0", "0,0"], "valid" : validTime.strftime("%Y%m%d%H%M")}]
+    else:
+        framesArray = [{"fhour" : 0, "filename" : "0.png", "gisInfo" : ["0,0", "0,0"], "valid" : validTime.strftime("%Y%m%d%H%M")}]
     # Create a dictionary for the run
     productRunDict = {
         "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
