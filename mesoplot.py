@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# TAMU Mesonet timeseries creation for next-gen HDWX
+# TAMU Mesonet timeseries creation for python-based HDWX
 # Created 16 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 from math import e
