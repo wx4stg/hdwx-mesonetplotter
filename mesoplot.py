@@ -156,9 +156,11 @@ def plotData(fileName):
     lax.axis("off")
     prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries", "last24hrs")
     Path(prodDir).mkdir(parents=True, exist_ok=True)
-    fig.savefig(path.join(prodDir, "0.png"))
     if hasHelpers:
+        HDWX_helpers.saveImage(fig, path.join(prodDir, "0.png"))
         HDWX_helpers.writeJson(basePath, (productID+1), campTable.index[-1], "0.png", campTable.index[-1], ["0,0", "0,0"], 60)
+    else:
+        fig.savefig(path.join(prodDir, "0.png"))
 
 if __name__ == "__main__":
     shouldFarm = True
