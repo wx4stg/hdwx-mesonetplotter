@@ -1,0 +1,16 @@
+[Unit]
+Description=hdwx-mesonetplotter
+PartOf=hdwx.target
+
+[Service]
+ExecStart=$pathToPython mesoplot.py
+ExecStop=rsync -ulrH ./output/. $targetDir --exclude=productTypes/ --exclude="*.tmp"
+Restart=always
+RestartSec=30
+RuntimeMaxSec=600
+WorkingDirectory=$pathToClone/hdwx-mesonetplotter/
+User=$myUsername
+SyslogIdentifier=hdwx-mesonetplotter
+
+[Install]
+WantedBy=hdwx.target

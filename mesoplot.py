@@ -2,9 +2,8 @@
 # TAMU Mesonet timeseries creation for python-based HDWX
 # Created 16 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
-from math import e
 import pandas as pd
-from os import path, listdir, remove, chmod
+from os import path, remove
 from pathlib import Path
 from matplotlib import pyplot as plt
 from matplotlib import image as mplimage
@@ -17,7 +16,6 @@ from metpy import calc as mpcalc
 from metpy.units import units
 import numpy as np
 import json
-from shutil import copyfile
 
 basePath = path.dirname(path.realpath(__file__))
 hasHelpers = False
