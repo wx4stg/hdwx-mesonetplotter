@@ -143,7 +143,8 @@ def plotData(fileName):
     fig.subplots_adjust(left = 0.05)
     fig.set_size_inches(1920*px, 1080*px)
     tax = fig.add_axes([ax6.get_position().x0+(ax6.get_position().width/2)-(ax6.get_position().width/6),0.1,(ax6.get_position().width/3),.05])
-    tax.text(0.5, 0.6, "TAMU Mesonet "+siteName+" Site\n 10-Minute Averages Timeseries: Last 24 Hours\nValid "+campTable.index[0].strftime("%b %d %H:%M")+" through "+campTable.index[-1].strftime("%b %d %H:%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
+    valid_time = campTable.index[-1]
+    tax.text(0.5, 0.6, "TAMU Mesonet "+siteName+" Site\n 10-Minute Averages Timeseries: Last 24 Hours\nValid "+campTable.index[0].strftime("%b %d %H:%M")+" through "+valid_time.strftime("%b %d %H:%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
     plt.setp(tax.spines.values(), visible=False)
     tax.tick_params(left=False, labelleft=False)
     tax.tick_params(bottom=False, labelbottom=False)
@@ -152,11 +153,12 @@ def plotData(fileName):
     atmoLogo = mplimage.imread("assets/atmoLogo.png")
     lax.imshow(atmoLogo)
     lax.axis("off")
-    prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries", "last24hrs")
+    prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries")
+    runDir = path.join(prodDir, valid_time.strftime('%Y/%m/%d/%H00/'))
     Path(prodDir).mkdir(parents=True, exist_ok=True)
     if hasHelpers:
-        HDWX_helpers.saveImage(fig, path.join(prodDir, "0.png"))
-        HDWX_helpers.writeJson(basePath, (productID+1), campTable.index[-1], "0.png", campTable.index[-1], ["0,0", "0,0"], 60)
+        HDWX_helpers.saveImage(fig, path.join(runDir, valid_time.strftime("%M.png")))
+        HDWX_helpers.writeJson(basePath, (productID+1), campTable.index[-1].replace(minute=0), valid_time.strftime("%M.png"), campTable.index[-1], ["0,0", "0,0"], 60)
     else:
         fig.savefig(path.join(prodDir, "0.png"))
 
