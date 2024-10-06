@@ -155,7 +155,7 @@ def plotData(fileName):
     lax.axis("off")
     prodDir = path.join(basePath, "output", "products", "mesonet", siteName, "timeseries")
     runDir = path.join(prodDir, valid_time.strftime('%Y/%m/%d/%H00/'))
-    Path(prodDir).mkdir(parents=True, exist_ok=True)
+    Path(runDir).mkdir(parents=True, exist_ok=True)
     if hasHelpers:
         HDWX_helpers.saveImage(fig, path.join(runDir, valid_time.strftime("%M.png")))
         HDWX_helpers.writeJson(basePath, (productID+1), campTable.index[-1].replace(minute=0), valid_time.strftime("%M.png"), campTable.index[-1], ["0,0", "0,0"], 60)
